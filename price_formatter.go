@@ -20,7 +20,7 @@ func formatPrice(price float64) string {
 
 	p := message.NewPrinter(language.Russian)
 	if withoutFractional == rounded {
-		return p.Sprint(number.Decimal(withoutFractional)) + " ₽"
+		return p.Sprint(number.Decimal(withoutFractional)) + "\u00A0₽"
 	}
-	return p.Sprint(number.Decimal(rounded, number.IncrementString("0.01"))) + " ₽"
+	return p.Sprint(number.Decimal(rounded, number.IncrementString("0.01"))) + "\u00A0₽"
 }
