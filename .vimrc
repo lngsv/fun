@@ -5,6 +5,10 @@ set tabstop=4
 set shiftwidth=4
 " On pressing tab, insert 4 spaces
 set expandtab
+" Delete 4 spaces by backspace
+set softtabstop=4
 set nu
 set mouse=a
 syntax on
+" cut trailing spaces
+autocmd BufWritePre * :%s/\s\+$//e
