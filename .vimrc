@@ -12,3 +12,5 @@ set mouse=a
 syntax on
 " cut trailing spaces
 autocmd BufWritePre * :%s/\s\+$//e
+" highlight line tail that is greater than 80 characters
+match ErrorMsg '\%>80v.\+'
