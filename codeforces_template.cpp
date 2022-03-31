@@ -18,7 +18,7 @@ using namespace std;
 using ll = long long;
 using ull = unsigned long long;
 
-void solve() {
+void solution() {
 
 }
 
@@ -26,7 +26,7 @@ int main() {
     int t;
     cin >> t;
     while (t--) {
-        solve();
+        solution();
     }
 }
 
