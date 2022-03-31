@@ -9,6 +9,9 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
+#include <queue>
+#include <stack>
+#include <bitset>
 
 using namespace std;
 
