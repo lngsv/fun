@@ -10,6 +10,11 @@ git commit --amend
 git reset HEAD^
 ```
 
+## Checkout one file
+```
+git checkout <branch> <file>
+```
+
 ## Copy changes without commit
 ```
 git pull --no-commit --squash origin remote-branch-name
