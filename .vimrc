@@ -8,7 +8,11 @@ set expandtab
 " Delete 4 spaces by backspace
 set softtabstop=4
 set nu
-set mouse=a
+
+if has('mouse')
+  set mouse=a
+endif
+
 syntax on
 " cut trailing spaces
 autocmd BufWritePre * :%s/\s\+$//e
