@@ -35,3 +35,12 @@ alias jmp_qa='sudosh sp_qa'
 alias jmp_me="ssh $(__get_jump_box)"
 alias dpl_me="ssh $(__get_deploy_box)"
 alias dev_me="ssh ldzls580d"
+
+sqpc_deploy() {
+  if [ -z "$1" ]; then
+    echo "No username given"
+    return 1
+  fi
+  
+  ssh -t "$(__get_deploy_box)" "sudo -u "$1" /apps/hft/bin/sqpc_deploy ${@:2}"
+}
