@@ -1,3 +1,5 @@
+ZSH_THEME="candy-patched"
+
 # zsh 5.0.2
 
 __get_jump_box() {
