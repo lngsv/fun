@@ -1,4 +1,6 @@
-ZSH_THEME="candy-patched"
+ZSH_THEME="candy"
+# to fix zsh taking 100% CPU because of polling a broken file descriptor
+zstyle ':omz:alpha:lib:git' async-prompt no
 
 # zsh 5.0.2
 
