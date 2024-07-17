@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fincalendar"
+requires-python = ">=3.12"
+dynamic = ["version"]
+dependencies = [
+    "pydantic",
+    "python-dateutil",
+    "tabulate",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black",
+    "isort",
+]
+
+[project.scripts]
+fincalendar = "fincalendar.main:main"
+
+[tool.isort]
+profile = "black"

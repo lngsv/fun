@@ -1,2 +1,6 @@
 .DS_Store
 proga
+venv
+*.egg-info
+__pycache__
+private
