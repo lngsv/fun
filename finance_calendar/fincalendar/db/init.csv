@@ -1,0 +1,4 @@
+day,event_type,purpose,price,bimonthly_odd
+1,last_workday_until,Event 1,-600,
+2,monthly,Event 2,-1500,
+3,bimonthly,Event 3,-200,1
