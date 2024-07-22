@@ -2,6 +2,5 @@
 proga
 venv
 *.egg-info
-__pycache__
+*.pyc
 private
-.ruff_cache
