@@ -4,9 +4,8 @@ import csv
 import datetime
 import os
 import sys
-from dataclasses import dataclass
 from enum import StrEnum
-from typing import List, Literal
+from typing import List, Literal, Optional
 
 from dateutil.rrule import DAILY, rrule
 from pydantic import BaseModel, model_validator
@@ -70,18 +69,30 @@ class ScheduleItem(BaseModel):
         assert False, "unexpected event type"
 
 
+class CalendarRow(BaseModel):
+    date: datetime.date
+    purpose: str
+    price: int
+    balance: int
+    override: Optional[int] = None
+
+
+# CalendarRow(date='2023-12-30', purpose='purp', price='123', balance=456, override=None)
+# table = [list(map(str.capitalize, CalendarRow.model_fields.keys())), CalendarRow(date='2023-12-30', purpose='purp', price=123, balance=456, override=None).model_dump().values()]
+
+
 def is_last_day_of_month(day: datetime.date):
     return day.day == calendar.monthrange(day.year, day.month)[1]
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--schedule-csv", required=True),
-    # parser.add_argument("--static-input-csv", required=True),
+    parser.add_argument("--schedule-csv", required=True)
+    # parser.add_argument("--static-input-csv", required=True)
     parser.add_argument("--from-date", type=datetime.date.fromisoformat, required=True)
     parser.add_argument("--to-date", type=datetime.date.fromisoformat, required=True)
     parser.add_argument("--initial-balance", type=int, default=0)
-    parser.add_argument("--output-csv"),
+    parser.add_argument("--output-csv")
     return parser.parse_args()
 
 
@@ -90,25 +101,50 @@ def read_schedule(schedule_path: str) -> List[ScheduleItem]:
     with open(schedule_path) as schedule_csv:
         csv_reader = csv.DictReader(schedule_csv)
         for row in csv_reader:
-            schedule.append(ScheduleItem(**row))
+            schedule_row = ScheduleItem(**row)  # type: ignore[arg-type]
+            schedule.append(schedule_row)
 
     return schedule
+
+
+def to_printable_table(events: List[CalendarRow]):
+    return [map(str.capitalize, CalendarRow.model_fields.keys())] + list(
+        map(lambda row: row.model_dump().values(), events)
+    )
 
 
 def main():
     args = parse_args()
     schedule = read_schedule(args.schedule_csv)
-    table = [
-        ["Date", "Purpose", "Price", "Balance"],
-        [args.from_date, "initial balance", args.initial_balance, args.initial_balance],
-    ]
+    table: List[CalendarRow] = to_printable_table(
+        [
+            CalendarRow(
+                date=args.from_date,
+                purpose="initial balance",
+                price=args.initial_balance,
+                balance=args.initial_balance,
+            )
+        ]
+    )
+
+    # TODO parse static file. To dict?
+    # Read static, generate within the provided range,
+    # sort and deduplicate by (date, purpose), prioritize the overrides
+    # Next stage: add validations for the inputs
     balance = args.initial_balance
-    for it in rrule(DAILY, dtstart=args.from_date, until=args.to_date):
-        dt = it.date()
+    for iterator in rrule(DAILY, dtstart=args.from_date, until=args.to_date):
+        date = iterator.date()
         for schedule_item in schedule:
-            if schedule_item.happens_on(dt):
+            if schedule_item.happens_on(date):
                 balance += schedule_item.price
-                table.append([dt, schedule_item.purpose, schedule_item.price, balance])
+                table.append(
+                    CalendarRow(
+                        date=date,
+                        purpose=schedule_item.purpose,
+                        price=schedule_item.price,
+                        balance=balance,
+                    )
+                )
 
     if args.output_csv:
         print(f"Outputting results to {args.output_csv}")
