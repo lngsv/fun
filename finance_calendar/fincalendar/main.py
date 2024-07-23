@@ -77,10 +77,6 @@ class CalendarRow(BaseModel):
     override: Optional[int] = None
 
 
-# CalendarRow(date='2023-12-30', purpose='purp', price='123', balance=456, override=None)
-# table = [list(map(str.capitalize, CalendarRow.model_fields.keys())), CalendarRow(date='2023-12-30', purpose='purp', price=123, balance=456, override=None).model_dump().values()]
-
-
 def is_last_day_of_month(day: datetime.date):
     return day.day == calendar.monthrange(day.year, day.month)[1]
 
@@ -116,16 +112,14 @@ def to_printable_table(events: List[CalendarRow]):
 def main():
     args = parse_args()
     schedule = read_schedule(args.schedule_csv)
-    table: List[CalendarRow] = to_printable_table(
-        [
-            CalendarRow(
-                date=args.from_date,
-                purpose="initial balance",
-                price=args.initial_balance,
-                balance=args.initial_balance,
-            )
-        ]
-    )
+    table: List[CalendarRow] = [
+        CalendarRow(
+            date=args.from_date,
+            purpose="initial balance",
+            price=args.initial_balance,
+            balance=args.initial_balance,
+        )
+    ]
 
     # TODO parse static file. To dict?
     # Read static, generate within the provided range,
@@ -146,13 +140,15 @@ def main():
                     )
                 )
 
+    printable_table = to_printable_table(table)
+
     if args.output_csv:
         print(f"Outputting results to {args.output_csv}")
         with open(args.output_csv, "w") as csvfile:
             writer = csv.writer(csvfile)
-            writer.writerows(table)
+            writer.writerows(printable_table)
     else:
-        print(tabulate(table, headers="firstrow", tablefmt="grid"))
+        print(tabulate(printable_table, headers="firstrow", tablefmt="grid"))
 
     return os.EX_OK
 
