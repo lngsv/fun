@@ -12,6 +12,8 @@ from pydantic import BaseModel, model_validator
 from tabulate import tabulate
 from typing_extensions import Self
 
+INITIAL_BALANCE_PURPOSE = "initial balance"
+
 
 class EventType(StrEnum):
     LAST_WORKDAY_UNTIL = "last_workday_until"
@@ -84,11 +86,12 @@ def is_last_day_of_month(day: datetime.date):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--schedule-csv", required=True)
-    # parser.add_argument("--static-input-csv", required=True)
+    parser.add_argument("--static-input-csv")
     parser.add_argument("--from-date", type=datetime.date.fromisoformat, required=True)
     parser.add_argument("--to-date", type=datetime.date.fromisoformat, required=True)
     parser.add_argument("--initial-balance", type=int, default=0)
     parser.add_argument("--output-csv")
+    # TODO json config
     return parser.parse_args()
 
 
@@ -103,6 +106,20 @@ def read_schedule(schedule_path: str) -> List[ScheduleItem]:
     return schedule
 
 
+def read_static(static_path: str) -> List[CalendarRow]:
+    if not static_path:
+        return []
+    static = []
+    with open(static_path) as static_csv:
+        csv_reader = csv.DictReader(static_csv)
+        for row in csv_reader:
+            row = {k.lower(): (None if v == "" else v) for k, v in row.items()}
+            static_row = CalendarRow(**row)  # type: ignore[arg-type]
+            static.append(static_row)
+
+    return static
+
+
 def to_printable_table(events: List[CalendarRow]):
     return [map(str.capitalize, CalendarRow.model_fields.keys())] + list(
         map(lambda row: row.model_dump().values(), events)
@@ -112,35 +129,59 @@ def to_printable_table(events: List[CalendarRow]):
 def main():
     args = parse_args()
     schedule = read_schedule(args.schedule_csv)
-    table: List[CalendarRow] = [
+    static = read_static(args.static_input_csv)
+
+    table: List[CalendarRow] = static + [
         CalendarRow(
             date=args.from_date,
-            purpose="initial balance",
+            purpose=INITIAL_BALANCE_PURPOSE,
             price=args.initial_balance,
             balance=args.initial_balance,
         )
     ]
 
-    # TODO parse static file. To dict?
-    # Read static, generate within the provided range,
-    # sort and deduplicate by (date, purpose), prioritize the overrides
     # Next stage: add validations for the inputs
-    balance = args.initial_balance
+
     for iterator in rrule(DAILY, dtstart=args.from_date, until=args.to_date):
         date = iterator.date()
         for schedule_item in schedule:
             if schedule_item.happens_on(date):
-                balance += schedule_item.price
                 table.append(
                     CalendarRow(
                         date=date,
                         purpose=schedule_item.purpose,
                         price=schedule_item.price,
-                        balance=balance,
+                        balance=0,
                     )
                 )
 
-    printable_table = to_printable_table(table)
+    # TODO we might have different overrides or prices for the same date and purpose
+    table.sort(key=lambda row: row.date)
+    assert table[0].purpose == INITIAL_BALANCE_PURPOSE
+    current_date, added_purposes = table[0].date, {table[0].purpose}
+    filtered_table = [table[0]]
+    balance = table[0].balance
+    for row in table[1:]:
+        if row.purpose == INITIAL_BALANCE_PURPOSE:
+            continue
+
+        if row.date == current_date:
+            if row.purpose in added_purposes:
+                continue
+            added_purposes.add(row.purpose)
+        else:
+            current_date = row.date
+            added_purposes = {row.purpose}
+
+        balance += row.price
+        row.balance = balance
+
+        if row.override is not None:
+            balance = row.override
+
+        filtered_table.append(row)
+
+    printable_table = to_printable_table(filtered_table)
 
     if args.output_csv:
         print(f"Outputting results to {args.output_csv}")

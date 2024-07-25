@@ -1,0 +1,8 @@
+{
+    "from_date": "2024-07-14",
+    "to_date": "2024-12-31",
+    "initial_balance": 100,
+    "schedule_csv": "fincalendar/db/init.csv",
+    "output_csv": "fincalendar/db/out.csv",
+    "static_input_csv": "fincalendar/db/out.csv"
+}
