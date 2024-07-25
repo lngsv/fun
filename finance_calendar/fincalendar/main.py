@@ -1,4 +1,3 @@
-import argparse
 import calendar
 import csv
 import datetime
@@ -11,6 +10,8 @@ from dateutil.rrule import DAILY, rrule
 from pydantic import BaseModel, model_validator
 from tabulate import tabulate
 from typing_extensions import Self
+
+from .parameters import get_parameters
 
 INITIAL_BALANCE_PURPOSE = "initial balance"
 
@@ -83,18 +84,6 @@ def is_last_day_of_month(day: datetime.date):
     return day.day == calendar.monthrange(day.year, day.month)[1]
 
 
-def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--schedule-csv", required=True)
-    parser.add_argument("--static-input-csv")
-    parser.add_argument("--from-date", type=datetime.date.fromisoformat, required=True)
-    parser.add_argument("--to-date", type=datetime.date.fromisoformat, required=True)
-    parser.add_argument("--initial-balance", type=int, default=0)
-    parser.add_argument("--output-csv")
-    # TODO json config
-    return parser.parse_args()
-
-
 def read_schedule(schedule_path: str) -> List[ScheduleItem]:
     schedule = []
     with open(schedule_path) as schedule_csv:
@@ -106,7 +95,7 @@ def read_schedule(schedule_path: str) -> List[ScheduleItem]:
     return schedule
 
 
-def read_static(static_path: str) -> List[CalendarRow]:
+def read_static(static_path: Optional[str]) -> List[CalendarRow]:
     if not static_path:
         return []
     static = []
@@ -127,22 +116,25 @@ def to_printable_table(events: List[CalendarRow]):
 
 
 def main():
-    args = parse_args()
-    schedule = read_schedule(args.schedule_csv)
-    static = read_static(args.static_input_csv)
+    parameters = get_parameters()
+
+    schedule = read_schedule(parameters.schedule_csv)
+    static = read_static(parameters.static_input_csv)
 
     table: List[CalendarRow] = static + [
         CalendarRow(
-            date=args.from_date,
+            date=parameters.from_date,
             purpose=INITIAL_BALANCE_PURPOSE,
-            price=args.initial_balance,
-            balance=args.initial_balance,
+            price=parameters.initial_balance,
+            balance=parameters.initial_balance,
         )
     ]
 
     # Next stage: add validations for the inputs
 
-    for iterator in rrule(DAILY, dtstart=args.from_date, until=args.to_date):
+    for iterator in rrule(
+        DAILY, dtstart=parameters.from_date, until=parameters.to_date
+    ):
         date = iterator.date()
         for schedule_item in schedule:
             if schedule_item.happens_on(date):
@@ -183,9 +175,9 @@ def main():
 
     printable_table = to_printable_table(filtered_table)
 
-    if args.output_csv:
-        print(f"Outputting results to {args.output_csv}")
-        with open(args.output_csv, "w") as csvfile:
+    if parameters.output_csv:
+        print(f"Outputting results to {parameters.output_csv}")
+        with open(parameters.output_csv, "w") as csvfile:
             writer = csv.writer(csvfile)
             writer.writerows(printable_table)
     else:
