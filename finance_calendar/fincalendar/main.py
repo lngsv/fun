@@ -15,6 +15,7 @@ from .parameters import get_parameters
 
 INITIAL_BALANCE_PURPOSE = "initial balance"
 
+
 class EventType(StrEnum):
     LAST_WORKDAY_UNTIL = "last_workday_until"
     MONTHLY = "monthly"
@@ -94,6 +95,15 @@ class CalendarRow(BaseModel):
     override: Optional[int] = None
 
 
+class OverridesItem(BaseModel):
+    date: datetime.date
+    purpose: str
+    override: int
+
+    def matches(self, calendar_row: CalendarRow):
+        return calendar_row.date == self.date and calendar_row.purpose == self.purpose
+
+
 def is_last_day_of_month(day: datetime.date):
     return day.day == calendar.monthrange(day.year, day.month)[1]
 
@@ -109,18 +119,15 @@ def read_schedule(schedule_path: str) -> List[ScheduleItem]:
     return schedule
 
 
-def read_static(static_path: Optional[str]) -> List[CalendarRow]:
-    if not static_path:
-        return []
-    static = []
-    with open(static_path) as static_csv:
-        csv_reader = csv.DictReader(static_csv)
+def read_overrides(overrides_path: str) -> List[OverridesItem]:
+    overrides = []
+    with open(overrides_path) as overrides_csv:
+        csv_reader = csv.DictReader(overrides_csv)
         for row in csv_reader:
-            row = {k.lower(): (None if v == "" else v) for k, v in row.items()}
-            static_row = CalendarRow(**row)  # type: ignore[arg-type]
-            static.append(static_row)
+            overrides_row = OverridesItem(**row)  # type: ignore[arg-type]
+            overrides.append(overrides_row)
 
-    return static
+    return overrides
 
 
 def to_printable_table(events: List[CalendarRow]):
@@ -133,9 +140,9 @@ def main():
     parameters = get_parameters()
 
     schedule = read_schedule(parameters.schedule_csv)
-    static = read_static(parameters.static_input_csv)
+    overrides = read_overrides(parameters.overrides_csv)
 
-    table: List[CalendarRow] = static + [
+    table: List[CalendarRow] = [
         CalendarRow(
             date=parameters.from_date,
             purpose=INITIAL_BALANCE_PURPOSE,
@@ -161,33 +168,19 @@ def main():
                     )
                 )
 
-    # TODO we might have different overrides or prices for the same date and purpose
-    table.sort(key=lambda row: row.date)
-    assert table[0].purpose == INITIAL_BALANCE_PURPOSE
-    current_date, added_purposes = table[0].date, {table[0].purpose}
-    filtered_table = [table[0]]
     balance = table[0].balance
     for row in table[1:]:
-        if row.purpose == INITIAL_BALANCE_PURPOSE:
-            continue
-
-        if row.date == current_date:
-            if row.purpose in added_purposes:
-                continue
-            added_purposes.add(row.purpose)
-        else:
-            current_date = row.date
-            added_purposes = {row.purpose}
-
         balance += row.price
         row.balance = balance
+
+        for override_item in overrides:
+            if override_item.matches(row):
+                row.override = override_item.override
 
         if row.override is not None:
             balance = row.override
 
-        filtered_table.append(row)
-
-    printable_table = to_printable_table(filtered_table)
+    printable_table = to_printable_table(table)
 
     if parameters.output_csv:
         print(f"Outputting results to {parameters.output_csv}")

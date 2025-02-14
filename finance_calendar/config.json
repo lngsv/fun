@@ -3,6 +3,6 @@
     "to_date": "2024-12-31",
     "initial_balance": 100,
     "schedule_csv": "db/init.csv",
-    "output_csv": "db/out.csv",
-    "static_input_csv": "db/static.csv"
+    "overrides_csv": "finance_calendar/db/private/overrides.csv",
+    "output_csv": "db/out.csv"
 }

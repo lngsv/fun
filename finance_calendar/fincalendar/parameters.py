@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 class Parameters(BaseModel):
     schedule_csv: str
-    static_input_csv: Optional[str]
+    overrides_csv: str
     from_date: datetime.date
     to_date: datetime.date
     initial_balance: int
@@ -18,7 +18,7 @@ class Parameters(BaseModel):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--schedule-csv")
-    parser.add_argument("--static-input-csv")
+    parser.add_argument("--overrides-csv")
     parser.add_argument("--from-date", type=datetime.date.fromisoformat)
     parser.add_argument("--to-date", type=datetime.date.fromisoformat)
     parser.add_argument("--initial-balance", type=int, default=0)
@@ -41,7 +41,7 @@ def get_parameters() -> Parameters:
 
     return Parameters(
         schedule_csv=config.get("schedule_csv", args.schedule_csv),
-        static_input_csv=config.get("static_input_csv", args.static_input_csv),
+        overrides_csv=config.get("overrides_csv", args.overrides_csv),
         from_date=config.get("from_date", args.from_date),
         to_date=config.get("to_date", args.to_date),
         initial_balance=config.get("initial_balance", args.initial_balance),
