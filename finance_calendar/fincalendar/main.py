@@ -15,11 +15,11 @@ from .parameters import get_parameters
 
 INITIAL_BALANCE_PURPOSE = "initial balance"
 
-
 class EventType(StrEnum):
     LAST_WORKDAY_UNTIL = "last_workday_until"
     MONTHLY = "monthly"
     BIMONTHLY = "bimonthly"
+    YEARLY = "yearly"
 
 
 class ScheduleItem(BaseModel):
@@ -28,6 +28,7 @@ class ScheduleItem(BaseModel):
     purpose: str
     price: int
     bimonthly_odd: bool | Literal[""]  # empty string is None from csv reader
+    yearly_month: int | Literal[""]  # empty string is None from csv reader
 
     @model_validator(mode="after")
     def _check_bimonthly_odd(self) -> Self:
@@ -35,6 +36,14 @@ class ScheduleItem(BaseModel):
             assert isinstance(
                 self.bimonthly_odd, bool
             ), "bimonthly_odd expected in the csv for bimonthly event"
+        return self
+
+    @model_validator(mode="after")
+    def _check_yearly_month(self) -> Self:
+        if self.event_type == EventType.YEARLY:
+            assert isinstance(
+                self.yearly_month, int
+            ), "yearly_month expected in the csv for yearly event"
         return self
 
     def _is_today(self, dt: datetime.date) -> bool:
@@ -69,7 +78,12 @@ class ScheduleItem(BaseModel):
 
             return False
 
-        assert False, "unexpected event type"
+        if self.event_type == EventType.YEARLY:
+            if dt.month == self.yearly_month:
+                return dt.day == self.day
+            return False
+
+        assert False, f"unexpected event type: {self.event_type}"
 
 
 class CalendarRow(BaseModel):
